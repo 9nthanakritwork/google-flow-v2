@@ -1,0 +1,27 @@
+{
+  "active_account_id": "acc_01",
+  "accounts": [
+    {
+      "id": "acc_01",
+      "email": "user1@example.com",
+      "status": "ready",
+      "daily_credit_limit": 50,
+      "credits_used_today": 0,
+      "last_used_date": "2026-09-24",
+      "profile_dir": "/home/hermes/flow-profiles/acc_01",
+      "port": 9333,
+      "project_id": "YOUR_PROJECT_ID_1"
+    },
+    {
+      "id": "acc_02",
+      "email": "user2@example.com",
+      "status": "ready",
+      "daily_credit_limit": 50,
+      "credits_used_today": 0,
+      "last_used_date": "2026-09-24",
+      "profile_dir": "/home/hermes/flow-profiles/acc_02",
+      "port": 9333,
+      "project_id": "YOUR_PROJECT_ID_2"
+    }
+  ]
+}

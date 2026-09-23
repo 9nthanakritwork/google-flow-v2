@@ -1,0 +1,17 @@
+{
+  "name": "google-flow-v2",
+  "version": "2.0.0",
+  "description": "Google Flow V2 Pure Wire Protocol Automation & Warehouse Video Pipeline",
+  "type": "module",
+  "main": "warehouse_flow_v2.mjs",
+  "scripts": {
+    "start": "node warehouse-server.js",
+    "runner": "node warehouse_flow_v2.mjs",
+    "rotator": "node core/account_rotator.mjs"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "author": "9nthanakritwork",
+  "license": "MIT"
+}

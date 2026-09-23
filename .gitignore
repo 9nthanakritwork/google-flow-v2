@@ -1,0 +1,9 @@
+node_modules/
+*.log
+runner.log
+account_pool.json
+openrouter_api_key.txt
+media/
+output/
+.env
+.DS_Store

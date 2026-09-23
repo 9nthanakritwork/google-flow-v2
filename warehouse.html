@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>คลังสินค้า — Hermes Flow Automation v2 (server-wins)</title>
+<style>
+:root{--bg:#0d1017;--card:#171a22;--card2:#1e2230;--line:#2a2e3a;--txt:#e8eaf0;--dim:#9aa0ae;--acc:#7c5cff;--acc2:#22c55e;--warn:#f59e0b;--err:#ef4444}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--txt);font-family:'Segoe UI',system-ui,sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;background:var(--card2);border-bottom:1px solid var(--line);flex-wrap:wrap;gap:10px}
+header h1{margin:0;font-size:20px}header h1 span{color:var(--acc);font-weight:600}
+header .hbtns{display:flex;gap:8px;flex-wrap:wrap}
+.wrap{max-width:1280px;margin:0 auto;padding:18px 22px}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 18px;min-width:110px}
+.stat small{display:block;color:var(--dim);font-size:11px}.stat b{font-size:22px}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.toolbar input,.toolbar select{padding:8px 10px;border-radius:8px;border:1px solid #444;background:var(--card);color:var(--txt)}
+.btn{padding:9px 16px;border-radius:8px;border:none;cursor:pointer;font-size:14px;font-weight:600;transition:filter .15s}
+.btn:hover{filter:brightness(1.15)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-s{padding:5px 10px;font-size:12px}
+.btn-p{background:var(--acc);color:#fff}.btn-g{background:var(--acc2);color:#fff}.btn-o{background:transparent;border:1px solid #555;color:var(--txt)}.btn-d{background:var(--err);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;position:relative}
+.card.selected{border-color:var(--acc);box-shadow:0 0 0 2px rgba(124,92,255,.4)}
+.card img{width:100%;height:160px;object-fit:cover;background:#000;display:block;cursor:pointer}
+.card .body{padding:10px 12px}
+.card h3{margin:0 0 6px;font-size:14px;line-height:1.35;min-height:38px}
+.tag{display:inline-block;background:#232838;color:var(--dim);border-radius:6px;padding:2px 8px;font-size:11px;margin:2px 3px 2px 0}
+.tag.st-queued{background:#3a2f12;color:var(--warn)}.tag.st-running{background:#122a3a;color:#38bdf8}.tag.st-done{background:#12331c;color:var(--acc2)}.tag.st-failed{background:#3a1414;color:var(--err)}
+.card .row{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.chk{position:absolute;top:10px;left:10px;width:22px;height:22px;cursor:pointer;accent-color:var(--acc);z-index:2}
+.batchbar{position:sticky;top:0;z-index:10;background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin-top:14px;display:none;align-items:center;gap:12px;flex-wrap:wrap}
+.batchbar.on{display:flex}
+.batchbar b{color:var(--acc)}
+small.hintline{display:block;color:var(--dim);margin-top:10px}
+.roundlist{font-size:11px;margin-top:6px;background:#10131a;border-radius:8px;padding:6px 8px;color:var(--dim)}
+.roundlist .rl{display:flex;justify-content:space-between;padding:2px 0}
+.roundlist .rl b{color:var(--txt);font-weight:500}
+.pathline{font-size:10px;color:#666;margin-top:6px;word-break:break-all;font-family:monospace}
+.copybtn{background:none;border:none;color:var(--acc);cursor:pointer;font-size:10px;padding:2px 4px}
+.thumb-row{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.thumb-row img{width:42px;height:42px;object-fit:cover;border-radius:5px;cursor:pointer;border:2px solid transparent;transition:border-color .15s}
+.thumb-row img.sel{border-color:var(--acc)}
+.badge-size{display:inline-block;border-radius:6px;padding:2px 7px;font-size:11px;font-weight:600;margin:2px 2px 0 0}
+.badge-small{background:#1e2a1e;color:#4ade80}.badge-large{background:#2a1e1e;color:#f87171}
+.badge-preset{display:inline-block;background:#12331c;color:var(--acc2);border-radius:6px;padding:2px 7px;font-size:10px;margin-top:2px;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@media(max-width:900px){
+ .wrap{padding:12px}
+ .stats{gap:6px}.stat{padding:8px 12px;min-width:90px}.stat b{font-size:18px}
+ .grid{grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+ .card img{height:130px}
+ header{padding:10px 14px}header h1{font-size:16px}
+ dialog{padding:14px}
+}
+@media(max-width:600px){
+ .grid{grid-template-columns:1fr 1fr;gap:8px}
+ .card img{height:110px}
+ .toolbar{flex-direction:column}.toolbar input,.toolbar select{width:100%!important;min-width:0!important}
+ .batchbar{flex-direction:column;text-align:center}
+}
+dialog{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:14px;padding:20px;max-height:88vh;overflow:auto}
+dialog::backdrop{background:rgba(0,0,0,.6)}
+dialog label{display:block;margin:10px 0 4px;font-size:13px;color:var(--dim)}
+dialog input,dialog select,dialog textarea{width:100%;padding:8px 10px;border-radius:8px;border:1px solid #444;background:#10131a;color:var(--txt);font-family:inherit}
+.row{display:flex;gap:8px;margin-top:14px}
+.plist{max-height:200px;overflow:auto;border:1px solid var(--line);border-radius:8px;padding:6px}
+.plist .prow{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;border-bottom:1px solid #222}
+.ptabs{display:flex;gap:6px;margin:8px 0}
+</style>
+</head>
+<body>
+<header>
+<h1>📦 คลังสินค้า <span>Hermes Flow</span></h1>
+<div class="hbtns">
+<span id="conn" title="เชื่อมต่อเซิร์ฟเวอร์"></span>
+<button class="btn btn-o" id="presetBtn">⚙️ สูตร</button>
+<button class="btn btn-o" id="importBtn">📥 Import</button>
+<button class="btn btn-o" id="exportBtn">📤 Export</button>
+<button class="btn btn-g" id="addBtn">+ เพิ่มสินค้า</button>
+</div>
+</header>
+<div class="wrap">
+<div class="stats">
+<div class="stat"><small>สินค้าทั้งหมด</small><b id="stTotal">0</b></div>
+<div class="stat"><small>รอเจน (queued)</small><b id="stQ">0</b></div>
+<div class="stat"><small>เสร็จ (done)</small><b id="stD">0</b></div>
+<div class="stat"><small>วิดีโอเสร็จ</small><b id="stV">0</b></div>
+<div class="stat"><small>รอบรวม</small><b id="stR">0</b></div>
+<div class="stat"><small>💎 เครดิต</small><b id="stCredits">—</b></div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px">
+<div style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px">
+<b style="font-size:13px;color:var(--acc)">📡 กิจกรรมระบบ (เรียลไทม์)</b>
+<div id="actFeed" style="max-height:180px;overflow:auto;margin-top:8px;font-size:12px;font-family:monospace;color:var(--dim)">กำลังโหลด...</div>
+</div>
+<div style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px">
+<b style="font-size:13px;color:var(--acc)">📋 คิวงานปัจจุบัน</b>
+<div id="queueFeed" style="max-height:180px;overflow:auto;margin-top:8px;font-size:12px">กำลังโหลด...</div>
+<div style="margin-top:8px;display:flex;gap:6px"><button class="btn btn-s btn-o" id="purgeBtn">🧹 ลบรายการค้าง/ผิดปกติ</button><button class="btn btn-s btn-o" id="refreshQueue">🔄 รีเฟรช</button></div>
+</div>
+</div>
+<div class="toolbar">
+<input id="q" placeholder="🔍 ค้นหาชื่อสินค้า..." style="min-width:220px">
+<select id="fStatus"><option value="all">สถานะ: ทั้งหมด</option><option>queued</option><option>running</option><option>done</option><option>failed</option></select>
+<select id="fPlat"><option value="all">แพลตฟอร์ม: ทั้งหมด</option><option>Shopee</option><option>TikTok</option><option>Facebook</option></select>
+<input id="fAcc" placeholder="บัญชี..." style="width:120px">
+</div>
+<div class="batchbar" id="batchBar">
+<b>เลือกแล้ว <span id="selCount">0</span> สินค้า</b>
+<button class="btn btn-g" id="selSend">🚀 ส่งที่เลือกไปเจน</button>
+<button class="btn btn-g" id="drainBtn">🔥 รันจนหมดคิว</button>
+<button class="btn btn-d" id="stopBtn">⏹ หยุดรัน</button>
+<button class="btn btn-o" id="selAll">เลือกทั้งหมด</button>
+<button class="btn btn-o" id="selNone">ยกเลิกการเลือก</button>
+</div>
+<div class="grid" id="grid" style="margin-top:14px"></div>
+<small class="hintline">💡 ติ๊กเลือกสินค้าที่การ์ด → กด "ส่งที่เลือกไปเจน" | เปิดจากเครื่องอื่นในวงแลน: <b id="lanUrl">http://<IP เครื่องนี้>:8899</b> | ผลงานเด้งเข้า Discord #flow-output อัตโนมัติ</small>
+<script>
+  // แสดง URL LAN จริงของเครื่องที่รัน server (ไม่ hardcode IP — ย้ายเครื่องก็ถูกต้องเอง)
+  // (ลบ fetch api.ipify ภายนอกทิ้ง — ไม่จำเป็นและเปลืองเน็ต)
+  (async () => {
+    try {
+      // WebRTC-free: ใช้ข้อมูลจาก server ตัวเอง — server รู้ address ที่ client ใช้เรียก
+      const r = await fetch('/api/hostinfo');
+      if (r.ok) { const j = await r.json(); const el = document.getElementById('lanUrl'); if (el && j.lanUrl) el.textContent = j.lanUrl; }
+    } catch {}
+  })();
+</script>
+</div>
+<input type="file" id="importFile" accept=".json" style="display:none">
+<dialog id="dlg">
+<h3 id="dlgTitle" style="margin-top:0">เพิ่มสินค้า</h3>
+<label>ชื่อสินค้า</label><input id="fName">
+<label>รูปสินค้า (ไฟล์ต้นฉบับความละเอียดสูง — ระบบส่งแบบเต็มไปเจน)</label>
+<div id="drop" style="border:2px dashed #444;border-radius:10px;padding:20px;text-align:center;cursor:pointer;color:var(--dim)">ลากวางรูปที่นี่ หรือคลิกเพื่อเลือกไฟล์</div>
+<input type="file" id="fImg" accept="image/*" style="display:none">
+<img id="preview" style="max-width:100%;max-height:180px;display:none;margin-top:8px;border-radius:8px">
+<label>สูตรภาพ (System Prompt + User Message)</label><select id="fImgP"></select>
+<label>สูตรวิดีโอ</label><select id="fVidP"></select>
+<label>โมเดลสร้างรูปภาพ (Image Gen)</label><select id="fImgModel"><option value="NanoBananaPro">Nano Banana Pro</option><option value="NanoBanana2">Nano Banana 2</option><option value="NanoBanana2Lite">Nano Banana 2 Lite</option></select>
+<label>จำนวนรอบ</label><input id="fRounds" type="number" min="1" max="20" value="1">
+<label>บทพูดไทย (1 บรรทัด = 1 รอบ, ~35 คำ/บท ห้ามสวัสดี เริ่มด้วย Hook)</label><textarea id="fSpeech" rows="3" placeholder="บรรทัดที่ 1 = รอบที่ 1"></textarea>
+<label>แพลตฟอร์ม</label><select id="fPlat2"><option value="">— ไม่ระบุ —</option><option>Shopee</option><option>TikTok</option><option>Facebook</option></select>
+<label>บัญชี</label><input id="fAcc2" placeholder="ชื่อบัญชี (ถ้ามี)">
+<label>สัดส่วนภาพ</label><select id="fRatio"><option>9:16</option><option>1:1</option><option>4:3</option><option>16:9</option></select>
+<label>ความยาววิดีโอ</label><select id="fDur"><option>10s</option><option>8s</option><option>4s</option></select>
+<label>สถานะ</label><select id="fSt"><option>queued</option><option>done</option><option>failed</option></select>
+<div class="row"><button class="btn btn-g" id="saveBtn">บันทึก</button><button class="btn btn-o" id="cancelBtn">ยกเลิก</button></div>
+</dialog>
+<dialog id="presetDlg" style="width:min(680px,94vw)">
+<h3 style="margin-top:0">⚙️ จัดการสูตร <small>(ซิงก์ไปเครื่องหลักให้ runner ใช้ทันที)</small></h3>
+<div class="ptabs"><button class="btn btn-s btn-o on" id="ptImg">สูตรรูป (<span id="cImg">0</span>)</button><button class="btn btn-s btn-o" id="ptVid">สูตรวิดีโอ (<span id="cVid">0</span>)</button></div>
+<div class="plist" id="pList"></div>
+<h4 id="pFormTitle" style="margin:10px 0 0">+ เพิ่มสูตรใหม่</h4>
+<label>ชื่อสูตร</label><input id="pName" placeholder="เช่น สไตล์รีวิวมือถือ 2026">
+<label>System Prompt (คำสั่งหลัก — สูตรวิดีโอให้วางบล็อกกำหนดตาม Template video shopee)</label><textarea id="pSys" rows="5"></textarea>
+<label>User Message Template (ใส่ {{productName}} ตรงที่จะแทรกชื่อสินค้า)</label><textarea id="pUsr" rows="2" placeholder="สินค้า: {{productName}}"></textarea>
+<div class="row"><button class="btn btn-g" id="pSave">บันทึกสูตร</button><button class="btn btn-o" id="pCancelForm">ล้างฟอร์ม</button><button class="btn btn-o" id="pClose">ปิด</button></div>
+</dialog>
+<script>
+const LS='wh_products_v3',LS_PRE='wh_presets_v3';
+let SERVER=location.protocol.startsWith('http');
+let products=[];let customPresets={image:{},video:{}};
+let imgPresets={},vidPresets={};let presetTab='image';let editingId=null,editingPreset=null,tmpImg=null,tmpImgName='';
+const selected=new Set();
+let roundStatuses={};
+async function fetchRoundStatuses(){if(!SERVER)return;try{const q=await (await fetch("/api/queue/status")).json();roundStatuses={};(q.items||[]).forEach(i=>{roundStatuses[i.id]=i.status+(i.has_video?" ✓":"")})}catch{}}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+
+async function persist(){
+ // server-wins: ไม่เขียน localStorage อีกต่อไป (state จริงอยู่ที่ server เท่านั้น)
+ if(SERVER){try{await fetch('/api/state',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({products,customPresets,__deleted:customPresets.__deleted||[]})});setConn(true)}catch(e){setConn(false)}}
+}
+function save(){persist();render()}
+function setConn(on){const c=document.getElementById('conn');c.textContent=on?'🟢':'🔴';c.title=on?'เชื่อมต่อเซิร์ฟเวอร์แล้ว':'ออฟไลน์ (บันทึกในเครื่อง)'}
+function roundsOf(p){const sp=(p.speeches||[]).filter(s=>(s||'').trim());return Math.max(1,p.rounds||0,sp.length)}
+async function loadPresets(){
+ if(SERVER){try{const r=await fetch('/api/presets');if(r.ok){const j=await r.json();imgPresets=j.image||imgPresets;vidPresets=j.video||vidPresets}setConn(true)}catch(e){setConn(false)}}
+ Object.assign(imgPresets,customPresets.image||{});
+ Object.assign(vidPresets,customPresets.video||{});
+ // tombstone: ตัดสูตรที่ผู้ใช้ลบไปแล้ว (รวม built-in) ไม่ให้เด้งกลับ
+ const del=customPresets.__deleted||[];
+ for(const k of del){delete imgPresets[k];delete vidPresets[k];}
+ fillPresetSelects();
+}
+function fillPresetSelects(){
+ const io=document.getElementById('fImgP'),vo=document.getElementById('fVidP');
+ const kI=io.value,kV=vo.value;io.innerHTML='';vo.innerHTML='';
+ Object.values(imgPresets).forEach(p=>{const o=document.createElement('option');o.value=p.name;o.textContent=p.name;io.appendChild(o)});
+ Object.values(vidPresets).forEach(p=>{const o=document.createElement('option');o.value=p.name;o.textContent=p.name;vo.appendChild(o)});
+ if(kI&&[...io.options].some(o=>o.value===kI))io.value=kI;
+ if(kV&&[...vo.options].some(o=>o.value===kV))vo.value=kV;
+ document.getElementById('cImg').textContent=Object.keys(imgPresets).length;
+ document.getElementById('cVid').textContent=Object.keys(vidPresets).length;
+}
+function updateBatchBar(){
+ const n=selected.size;
+ document.getElementById('batchBar').classList.toggle('on',n>0);
+ document.getElementById('selCount').textContent=n;
+}
+function toggleSel(id){
+ if(selected.has(id))selected.delete(id);else selected.add(id);
+ render();
+}
+function render(){
+ const q=(document.getElementById('q').value||'').toLowerCase(),fs=document.getElementById('fStatus').value;
+ const fp=document.getElementById('fPlat').value,fa=(document.getElementById('fAcc').value||'').toLowerCase();
+ const g=document.getElementById('grid');g.innerHTML='';
+ let tq=0,td=0,tv=0,tr=0;
+ products.forEach(p=>{
+  if(p.status==='queued'){tq++;tr+=roundsOf(p)}if(p.status==='done')td++;if(p.output_video)tv++;
+  if(fs!=='all'&&p.status!==fs)return;
+  if(fp!=='all'&&(p.platform||'')!==fp)return;
+  if(fa&&!((p.account||'').toLowerCase().includes(fa)))return;
+  if(q&&!(p.name||'').toLowerCase().includes(q))return;
+  const sp0=((p.speeches||[])[0]||'');
+  const d=document.createElement('div');d.className='card'+(selected.has(p.id)?' selected':'');
+  d.innerHTML='<input type="checkbox" class="chk" data-sel="'+p.id+'" '+(selected.has(p.id)?'checked':'')+' title="เลือกเพื่อส่งเจน">'
+  +'<img id="mainimg-'+p.id+'" src="'+(p.image_data||(p.all_images&&p.all_images[p.selected_image_idx||0])||'')+'" data-view="'+p.id+'" onerror="this.style.display=\'none\'">'
+  +(p.all_images&&p.all_images.length>1?'<div class="thumb-row">'+p.all_images.slice(0,8).map((u,i)=>'<img src="'+u+'" class="'+(i===(p.selected_image_idx||0)?'sel':'')+'" data-thumbp="'+p.id+'" data-thi="'+i+'" title="รูป '+(i+1)+'">').join('')+'</div>':'')
+  +'<div class="body"><h3>'+esc(p.name||'(ไม่มีชื่อ)')+'</h3>'
+  +(p.size_type?'<span class="badge-size badge-'+(p.size_type||'small')+'" style="cursor:pointer" title="คลิกเพื่อสลับ ชิ้นเล็ก/ชิ้นใหญ่" data-togglesize="'+p.id+'">'+(p.size_type==='large'?'🛋️ ชิ้นใหญ่ (ฉาก) ⇄':'👜 ชิ้นเล็ก (ถือ+ชี้) ⇄')+'</span>':'')
+  +(p.image_preset?'<span class="badge-preset" title="'+esc(p.image_preset)+'">🖼 '+esc(p.image_preset)+'</span><br>':'')
+  +'<span class="tag st-'+p.status+'">'+p.status+'</span><span class="tag">'+(p.ratio||'9:16')+'</span><span class="tag">'+(p.duration||'10s')+'</span><span class="tag">×'+roundsOf(p)+' รอบ</span><br>'
+  +((p.platform||p.account)?'<span class="tag">'+esc(p.platform||'')+(p.account?' / '+esc(p.account):'')+'</span><br>':'')
+  +'<span class="tag">🖼 '+esc(p.image_preset||'(ไม่เลือกสูตรภาพ)')+' ('+(p.imgModel||'NARWHAL')+')</span><span class="tag">🎬 '+esc(p.video_preset||'(ไม่เลือกสูตรวิดีโอ)')+'</span>'
+  +'<div class="roundlist">'+Array.from({length:roundsOf(p)},(_,i)=>{
+    const rid=p.id+'_r'+(i+1);
+    const st=(roundStatuses||{})[rid]||(p.status==='done'&&i<roundsOf(p)?'done':'—');
+    return '<div class="rl"><span>รอบ '+(i+1)+'</span><b>'+st+'</b></div>';
+  }).join('')+'</div>'
+  +(p.output_video?'<div class="pathline" id="path-'+p.id+'">📁 '+esc(p.output_video)+'<button class="copybtn" data-copy="'+p.output_video+'">📋 copy</button></div>':'')
+  +'<div style="font-size:12px;color:#999;margin-top:6px">'+esc(sp0.slice(0,60))+'...</div>'
+  +(p.output_video?'<div style="font-size:12px;color:#4ade80;margin-top:4px">✅ '+esc(p.output_video.split('\\\\').pop())+'</div>':'')
+  +'<div class="row"><button class="btn btn-s btn-o" data-e="'+p.id+'">✏️ แก้</button>'
+  +'<button class="btn btn-s btn-p" data-q="'+p.id+'">🚀 ส่งเจน (เดี่ยว)</button>'
+  +'<button class="btn btn-s" style="background:#7c3aed" data-regen="'+p.id+'">🔄 เจนใหม่</button>'
+  +'<button class="btn btn-s btn-o" data-v="'+p.id+'" '+(p.output_video?'':'disabled')+'>📥 วิดีโอ</button>'
+  +'<button class="btn btn-s btn-d" data-d="'+p.id+'">ลบ</button></div></div>';
+  g.appendChild(d);
+ });
+ document.getElementById('stTotal').textContent=products.length;
+ document.getElementById('stQ').textContent=tq;document.getElementById('stD').textContent=td;document.getElementById('stV').textContent=tv;
+ document.getElementById('stR').textContent=tr;
+ g.querySelectorAll('[data-sel]').forEach(c=>c.onchange=()=>toggleSel(c.dataset.sel));
+ g.querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>openDlg(b.dataset.e));
+ g.querySelectorAll('[data-d]').forEach(b=>b.onclick=async()=>{if(!confirm('ลบสินค้านี้? (ลบคิวทุกรอบด้วย)'))return;products=products.filter(x=>x.id!==b.dataset.d);selected.delete(b.dataset.d);await save();try{const q=await (await fetch('/api/queue/status')).json();for(const it of (q.items||[])){if(it.id.startsWith(b.dataset.d+'_r')||it.id===b.dataset.d){await fetch('/api/queue/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:it.id})})}}}catch{};refreshMonitor();});
+ g.querySelectorAll('[data-view]').forEach(im=>im.onclick=()=>{const p=products.find(x=>x.id===im.dataset.view);if(p&&p.image_data)window.open(p.image_data)});
+ // Toggle size_type: ชิ้นเล็ก ⇄ ชิ้นใหญ่
+ g.querySelectorAll('[data-togglesize]').forEach(badge=>badge.onclick=async(e)=>{
+   e.stopPropagation();
+   const pid=badge.dataset.togglesize;
+   const p=products.find(x=>x.id===pid);
+   if(!p)return;
+   p.size_type=p.size_type==='large'?'small':'large';
+   p.image_preset=p.size_type==='large'?'ป้ายยา Affiliate Shopee':'งานมือ พื้นหลังบ้านธรรมชาติต้นไม้ สวยมาก';
+   await save();render();
+ });
+ g.querySelectorAll('[data-thumbp]').forEach(th=>th.onclick=(e)=>{
+   e.stopPropagation();
+   const pid=th.dataset.thumbp,idx=parseInt(th.dataset.thi||0);
+   const p=products.find(x=>x.id===pid);if(!p)return;
+   p.selected_image_idx=idx;
+   // Update main image
+   const mi=document.getElementById('mainimg-'+pid);if(mi)mi.src=p.all_images[idx]||'';
+   // Update thumb highlights
+   th.closest('.card').querySelectorAll('[data-thumbp]').forEach(t=>t.classList.toggle('sel',parseInt(t.dataset.thi)===idx));
+   persist();
+ });
+ g.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{const p=products.find(x=>x.id===b.dataset.v);if(p&&p.output_video){const parts=p.output_video.split(/[\\/]/);const i=parts.indexOf('flow_output');const url='/output/'+(i>0?parts.slice(i+1).join('/'):parts.pop());window.open(url)}});
+ g.querySelectorAll('[data-q]').forEach(b=>b.onclick=async()=>{
+   const p=products.find(x=>x.id===b.dataset.q);
+   if(!confirm('ส่ง "'+p.name+'" ไปเจนทันที?'))return;
+   p.status='queued';await persist();
+   try{const r=await fetch('/api/flow/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'once'})});const j=await r.json();
+   if(j.ok){b.textContent='⏳ กำลังเจน...';b.disabled=true;alert('ส่ง "'+p.name+'" ไปเจนแล้วค่ะ — ผลงานจะเด้งเข้า Discord #flow-output เมื่อเสร็จ')}else alert('ส่งไม่สำเร็จ: '+JSON.stringify(j))}
+   catch(e){alert('ผิดพลาด: '+e.message)}
+   render();
+ });
+ // 🔄 เจนใหม่ — reset output + status แล้วส่งเจนทันที
+ g.querySelectorAll('[data-regen]').forEach(b=>b.onclick=async()=>{
+   const p=products.find(x=>x.id===b.dataset.regen);
+   if(!p)return;
+   if(!confirm('🔄 เจนใหม่ "'+p.name+'"?\n(จะลบวิดีโอเดิมออกและสั่งเจนรอบใหม่ทันที)'))return;
+   p.status='queued';
+   p.output_video='';
+   await persist();
+   try{
+     // ลบ queue เดิมออกก่อน
+     const qs=await(await fetch('/api/queue/status')).json();
+     for(const it of (qs.items||[])){
+       if(it.id.startsWith(p.id+'_r')||it.id===p.id){
+         await fetch('/api/queue/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:it.id})});
+       }
+     }
+     // start runner
+     const r=await fetch('/api/flow/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'once'})});
+     const j=await r.json();
+     if(j.ok){b.textContent='⏳ กำลังเจนใหม่...';b.disabled=true;alert('🔄 สั่งเจนใหม่ "'+p.name+'" แล้วค่ะ\nผลงานจะเด้งเข้า Discord #flow-output เมื่อเสร็จ')}
+     else alert('ส่งไม่สำเร็จ: '+JSON.stringify(j));
+   }catch(e){alert('ผิดพลาด: '+e.message)}
+   render();
+ });
+ updateBatchBar();
+}
+function openDlg(id){
+ editingId=id||null;tmpImg=null;tmpImgName='';
+ const p=id?products.find(x=>x.id===id):null;
+ document.getElementById('dlgTitle').textContent=p?'แก้สินค้า':'เพิ่มสินค้า';
+ document.getElementById('fName').value=p?.name||'';
+ document.getElementById('fImgP').value=p?.image_preset||'';
+ document.getElementById('fVidP').value=p?.video_preset||'';
+ document.getElementById('fRounds').value=p?.rounds||1;
+ document.getElementById('fSpeech').value=(p?.speeches||[]).join('\n');
+ document.getElementById('fPlat2').value=p?.platform||'';
+ document.getElementById('fAcc2').value=p?.account||'';
+ document.getElementById('fRatio').value=p?.ratio||'9:16';
+ document.getElementById('fDur').value=p?.duration||'10s';
+ document.getElementById('fSt').value=p?.status||'queued';
+ const pv=document.getElementById('preview');
+ if(p?.image_data){pv.src=p.image_data;pv.style.display='block'}else{pv.style.display='none'}
+ document.getElementById('dlg').showModal();
+}
+document.getElementById('addBtn').onclick=()=>openDlg(null);
+document.getElementById('cancelBtn').onclick=()=>document.getElementById('dlg').close();
+function readImg(f){tmpImgName=f.name;const r=new FileReader();r.onload=()=>{tmpImg=r.result;const pv=document.getElementById('preview');pv.src=tmpImg;pv.style.display='block'};r.readAsDataURL(f)}
+document.getElementById('fImg').onchange=e=>{const f=e.target.files[0];if(f)readImg(f)};
+const dropEl=document.getElementById('drop');
+dropEl.onclick=()=>document.getElementById('fImg').click();
+['dragover','dragenter'].forEach(ev=>dropEl.addEventListener(ev,e=>{e.preventDefault();dropEl.classList.add('over')}));
+['dragleave','drop'].forEach(ev=>dropEl.addEventListener(ev,e=>{e.preventDefault();dropEl.classList.remove('over')}));
+dropEl.ondrop=e=>{const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image/'))readImg(f)};
+document.getElementById('saveBtn').onclick=()=>{
+ const name=document.getElementById('fName').value.trim();
+ if(!name){alert('ใส่ชื่อสินค้าก่อนค่ะ');return}
+ const data={
+  name,
+  image_preset:document.getElementById('fImgP').value,
+  video_preset:document.getElementById('fVidP').value,
+  imgModel:document.getElementById('fImgModel').value||'NARWHAL',
+  rounds:parseInt(document.getElementById('fRounds').value)||1,
+  speeches:document.getElementById('fSpeech').value.split('\n').map(s=>s.trim()).filter(Boolean),
+  platform:document.getElementById('fPlat2').value,
+  account:document.getElementById('fAcc2').value.trim(),
+  ratio:document.getElementById('fRatio').value,
+  duration:document.getElementById('fDur').value,
+  status:document.getElementById('fSt').value
+ };
+ if(tmpImg){data.image_data=tmpImg;data.image_file=tmpImgName}
+ if(editingId){
+  const p=products.find(x=>x.id===editingId);
+  // FIX: preserve image_data, all_images, selected_image_idx, size_type, id BEFORE assign
+  if(!tmpImg && p.image_data) data.image_data = p.image_data;
+  if(!tmpImg && p.image_file) data.image_file = p.image_file;
+  if(p.all_images) data.all_images = p.all_images;
+  if(p.selected_image_idx != null) data.selected_image_idx = p.selected_image_idx;
+  if(p.size_type) data.size_type = p.size_type;
+  if(p.item_id) data.item_id = p.item_id;
+  if(p.aff_link) data.aff_link = p.aff_link;
+  data.id = p.id;
+  data.output_video = p.output_video || '';
+  Object.assign(p, data);
+ }else{
+  data.id='p'+Date.now();
+  if(!data.image_data){alert('แนบรูปสินค้าด้วยค่ะ (ใช้เป็นตัวอ้างอิงให้ภาพโฆษณาตรงสินค้า)');return}
+  data.output_video='';
+ }
+ if(!data.id)data.id='p'+Date.now(); // กัน id หาย (id=None = ต้นเหตุคิว undefined ใช้รูปสินค้าผิด)
+ products=products.filter(x=>x.id!==(editingId||data.id));
+ products.push(data);
+ document.getElementById('dlg').close();
+ save();
+};
+['q','fStatus','fPlat','fAcc'].forEach(id=>{document.getElementById(id).oninput=render;document.getElementById(id).onchange=render});
+// ---- batch selection ----
+document.getElementById('selAll').onclick=()=>{products.forEach(p=>selected.add(p.id));render()};
+document.getElementById('selNone').onclick=()=>{selected.clear();render()};
+document.getElementById('selSend').onclick=async()=>{
+ if(!selected.size)return;
+ if(!confirm('ส่ง '+selected.size+' สินค้าที่เลือกไปเจน? (ทำตามสูตรที่แต่ละสินค้าเลือกไว้)'))return;
+ let n=0;
+ products.forEach(p=>{if(selected.has(p.id)){p.status='queued';n++}});
+ await persist();
+ try{
+  const r=await fetch('/api/flow/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'once'})});
+  const j=await r.json();
+  if(j.ok){alert('ส่ง '+n+' สินค้า ('+selected.size+' รายการ) ไปเจนแล้วค่ะ!\nผลงานจะเด้งเข้า Discord #flow-output ทีละรายการ');selected.clear();render();}
+  else alert('ส่งไม่สำเร็จ: '+JSON.stringify(j));
+  }catch(e){alert('ผิดพลาด: '+e.message)}
+  render();
+  };
+  document.getElementById('drainBtn').onclick=async()=>{
+  if(!confirm('รันจนหมดคิวทุกสินค้าใน Dashboard? (จะใช้เครดิต Flow จนคิวว่าง)'))return;
+  try{
+  const r=await fetch('/api/flow/drain',{method:'POST',headers:{'Content-Type':'application/json'},body:''});
+  const j=await r.json();
+  if(j.ok)alert('เริ่มรันจนหมดคิวแล้วค่ะ — ระบบจะทำตามลำดับจนกว่าคิวจะว่าง (ส่ง Discord เมื่อเสร็จ)');
+  else if(j.error==='runner_already_running')alert('มีตัวรันทำงานอยู่แล้ว — กด ⏹ หยุดรันก่อน ถ้าจะเริ่มใหม่');
+  else alert('ส่งไม่สำเร็จ: '+JSON.stringify(j));
+  }catch(e){alert('ผิดพลาด: '+e.message)}
+  };
+  document.getElementById('stopBtn').onclick=async()=>{
+  if(!confirm('หยุดตัวรันที่กำลังทำงานทั้งหมด? (งานที่ค้างจะกลับเป็นรอคิว)'))return;
+  try{
+  const r=await fetch('/api/flow/stop',{method:'POST'});
+  const j=await r.json();
+  if(j.ok)alert('หยุดแล้วค่ะ (ฆ่า '+j.killed+' โปรเซส, คืนคิว '+j.reset+' รายการ) — เออเร่อจะไม่สแปมต่อ');
+  else alert('หยุดไม่สำเร็จ: '+JSON.stringify(j));
+  }catch(e){alert('ผิดพลาด: '+e.message)}
+  refreshMonitor();
+  };
+  // ---- preset manager ----
+function presetStore(){return presetTab==='image'?(customPresets.image||(customPresets.image={})):(customPresets.video||(customPresets.video={}))}
+function presetAll(){return presetTab==='image'?imgPresets:vidPresets}
+function renderPresets(){
+ document.getElementById('pList').innerHTML='';
+ Object.entries(presetAll()).forEach(([id,p])=>{
+  const row=document.createElement('div');row.className='prow';
+  row.innerHTML='<span>'+esc(p.name)+'</span><span><button class="btn btn-s btn-o" data-pe="'+id+'">แก้</button> <button class="btn btn-s btn-d" data-pd="'+id+'">ลบ</button></span>';
+  document.getElementById('pList').appendChild(row);
+ });
+ document.getElementById('pList').querySelectorAll('[data-pe]').forEach(b=>b.onclick=()=>{
+  const p=presetAll()[b.dataset.pe];editingPreset=b.dataset.pe;
+  document.getElementById('pFormTitle').textContent='แก้สูตร: '+p.name;
+  document.getElementById('pName').value=p.name;document.getElementById('pSys').value=p.systemPrompt||'';document.getElementById('pUsr').value=p.userMessageTemplate||'';
+ });
+ document.getElementById('pList').querySelectorAll('[data-pd]').forEach(b=>b.onclick=()=>{
+  if(!confirm('ลบสูตรนี้?'))return;
+  delete presetStore()[b.dataset.pd];delete presetAll()[b.dataset.pd];
+  // tombstone: จำ id ที่ลบ (รวม built-in) กันเด้งกลับตอน merge /api/presets
+  customPresets.__deleted=customPresets.__deleted||[];
+  if(!customPresets.__deleted.includes(b.dataset.pd))customPresets.__deleted.push(b.dataset.pd);
+  if(editingPreset===b.dataset.pd)editingPreset=null;
+  persist();fillPresetSelects();renderPresets();
+ });
+}
+document.getElementById('presetBtn').onclick=()=>{document.getElementById('presetDlg').showModal();renderPresets()};
+document.getElementById('ptImg').onclick=()=>{presetTab='image';document.getElementById('ptImg').classList.add('on');document.getElementById('ptVid').classList.remove('on');renderPresets()};
+document.getElementById('ptVid').onclick=()=>{presetTab='video';document.getElementById('ptVid').classList.add('on');document.getElementById('ptImg').classList.remove('on');renderPresets()};
+document.getElementById('pClose').onclick=()=>document.getElementById('presetDlg').close();
+document.getElementById('pCancelForm').onclick=()=>{editingPreset=null;document.getElementById('pFormTitle').textContent='+ เพิ่มสูตรใหม่';document.getElementById('pName').value='';document.getElementById('pSys').value='';document.getElementById('pUsr').value=''};
+document.getElementById('pSave').onclick=()=>{
+ const name=document.getElementById('pName').value.trim();
+ const sys=document.getElementById('pSys').value.trim();
+ if(!name||!sys){alert('ใส่ชื่อสูตร + System Prompt ก่อนค่ะ');return}
+ const store=presetStore(),all=presetAll();
+ const id=editingPreset||('custom-'+Date.now());
+ store[id]={name,systemPrompt:sys,userMessageTemplate:document.getElementById('pUsr').value};
+ all[id]=store[id];
+ editingPreset=null;persist();fillPresetSelects();renderPresets();
+ document.getElementById('pFormTitle').textContent='+ เพิ่มสูตรใหม่';document.getElementById('pName').value='';document.getElementById('pSys').value='';document.getElementById('pUsr').value='';
+ alert('บันทึกสูตร "'+name+'" แล้ว — runner จะทำตามสูตรนี้ทันที');
+};
+// ---- import/export ----
+document.getElementById('exportBtn').onclick=()=>{
+ const blob=new Blob([JSON.stringify({products,customPresets},null,2)],{type:'application/json'});
+ const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='warehouse_export.json';a.click();
+};
+document.getElementById('importBtn').onclick=()=>document.getElementById('importFile').click();
+document.getElementById('importFile').onchange=e=>{
+ const f=e.target.files[0];if(!f)return;
+ const r=new FileReader();
+ r.onload=async()=>{try{
+  const j=JSON.parse(r.result);
+  products=j.products||j.items||j;
+  customPresets=j.customPresets||{image:{},video:{}};
+  await persist();loadPresets();render();
+  alert('นำเข้า '+products.length+' สินค้าแล้ว');
+ }catch(err){alert('ไฟล์ไม่ถูกต้อง: '+err.message)}};
+ r.readAsText(f);
+};
+// ---- init ----
+// SERVER-WINS: ห้ามฟื้น state เก่าจาก localStorage — ทุกอย่างเชื่อฟ้าเซิร์ฟเวอร์ตัวเดียว
+// (localStorage เก่า = สาเหตุ "ลบสูตรแล้วเด้งกลับ" — ตัดจากราก)
+try{localStorage.removeItem('wh_products_v3');localStorage.removeItem('wh_presets_v3')}catch{}
+async function pull(){if(!SERVER)return;try{const r=await fetch('/api/state');if(r.ok){const j=await r.json();products=j.products||products;lastUpdatedAt=j.updated_at||lastUpdatedAt;const sp=j.customPresets||{};customPresets={image:{...(sp.image||{})},video:{...(sp.video||{})},__deleted:[...((sp.__deleted)||[])]}} await loadPresets();setConn(true)}catch(e){setConn(false)}}
+// เช็คว่า state เปลี่ยนไหมก่อนดึงเต็ม (full state ~12MB — ดึงเฉพาะตอนเปลี่ยนเท่านั้น)
+let lastUpdatedAt=0, creditTick=0;
+async function pullIfChanged(){if(!SERVER)return false;try{const r=await fetch('/api/state/meta');if(!r.ok)return false;const m=await r.json();if((m.updated_at||0)!==lastUpdatedAt){await pull();await fetchRoundStatuses();render();return true}}catch{}return false}
+// ---- live monitor: activity, queue, credits ----
+async function refreshMonitor(){
+  if(!SERVER)return;
+  try{
+    const a=await (await fetch('/api/activity')).json();
+    const f=document.getElementById('actFeed');
+    if(f){f.innerHTML=(a.events||[]).slice(0,15).map(e=>{
+      const t=e.ts.slice(11,19);const ic=e.status==='done'?'✅':e.status==='failed'?'❌':e.status==='running'?'⏳':'•';
+      return '<div>'+ic+' '+t+' — '+esc((e.note||e.status||'').slice(0,60))+'</div>';
+    }).join('')||'ยังไม่มีกิจกรรม';}
+  }catch{}
+  try{
+    const s=await (await fetch('/api/flow/status')).json();
+    const qf=document.getElementById('queueFeed');
+    if(qf){qf.innerHTML='⏳ กำลังเจน: <b>'+s.running+'</b> | 📋 รอ: <b>'+s.queued+'</b> | ✅ เสร็จ: <b>'+s.done+'</b> | ❌ พลาด: <b>'+s.failed+'</b>';}
+  }catch{}
+  try{
+    // เครดิต: ดึงตรงจาก warehouse-server (/api/credits)
+    if(++creditTick%3===1){
+      const c=await (await fetch('/api/credits')).json();
+      const ce=document.getElementById('stCredits');
+      if(ce)ce.textContent=c.credits??'—';
+    }
+  }catch{}
+}
+document.getElementById('purgeBtn').onclick=async()=>{
+  if(!confirm('ลบรายการค้าง/ผิดปกติ (undefined, orphan) ออกจากคิว?'))return;
+  const r=await (await fetch('/api/queue/purge-orphans',{method:'POST'})).json();
+  alert('ลบไป '+r.purged+' รายการ');refreshMonitor();
+};
+document.getElementById('refreshQueue').onclick=refreshMonitor;
+// Monitor อัปเดตเรียลไทม์ทุก 3 วิ (กิจกรรมระบบ, คิว, เครดิต)
+setInterval(refreshMonitor, 3000);
+setInterval(async()=>{await fetchRoundStatuses();render()},10000);
+loadPresets().then(async()=>{if(SERVER){await pull();await fetchRoundStatuses();}render();refreshMonitor();if(SERVER){setInterval(pullIfChanged,15000)}});
+</script>
+</body>
+</html>
+<label>โมเดลสร้างรูปภาพ</label><select id="fImgModel"><option value=\"NARWHAL\">NARWHAL (default)</option><option value=\"NanoBanana2\">Nano Banana 2</option></select>
