@@ -140,20 +140,19 @@ export async function selectNextAccount(requiredCredits = 15) {
   );
 
   if (candidateAccounts.length === 0) {
-    console.warn(`[Rotator Warning] No ready accounts with >= ${requiredCredits} credits remaining.`);
-    const anyAvailable = pool.accounts.filter(a => a.status === 'ready');
-    if (anyAvailable.length === 0) {
-      throw new Error('All Google Flow accounts have exhausted their daily credit quota.');
-    }
-    return anyAvailable[0];
+    console.error(`[Rotator Error] All accounts exhausted for today. None have >= ${requiredCredits} credits.`);
+    throw new Error(`ALL_ACCOUNTS_EXHAUSTED: All accounts exhausted for today. None have >= ${requiredCredits} credits.`);
   }
 
-  // If current active account has enough credits, keep it!
+  // If current active account has enough credits, verify CDP and keep it!
   const current = candidateAccounts.find(a => a.id === pool.active_account_id);
   if (current) {
-    const rem = current.daily_credit_limit - current.credits_used_today;
-    console.log(`[Rotator] Current active account ${current.id} (${current.email}) has ${rem} credits (>= ${requiredCredits} required).`);
-    return current;
+    const isLive = await waitForCdp(9333, 2);
+    if (isLive) {
+      const rem = current.daily_credit_limit - current.credits_used_today;
+      console.log(`[Rotator] Current active account ${current.id} (${current.email}) has ${rem} credits (>= ${requiredCredits} required).`);
+      return current;
+    }
   }
 
   // Otherwise pick the next account with the most remaining credits
@@ -162,7 +161,7 @@ export async function selectNextAccount(requiredCredits = 15) {
   );
 
   const next = candidateAccounts[0];
-  console.log(`[Rotator] Selected next account: ${next.id} (${next.email}) with ${next.daily_credit_limit - next.credits_used_today} credits.`);
+  console.log(`[Rotator] Switching to next account: ${next.id} (${next.email}) with ${next.daily_credit_limit - next.credits_used_today} credits.`);
 
   // Switch Chrome to this account cleanly
   await switchChromeToAccount(next);

@@ -276,6 +276,9 @@ const server = http.createServer(async (req, res) => {
       const runner = process.env.FLOW_RUNNER_PATH || '/home/hermes/DEV/api-custom-flow/warehouse_flow_v2.mjs';
       const logFd = fs.openSync('/home/hermes/DEV/api-custom-flow/runner.log', 'a');
       const args = mode==='dry' ? ['--dry'] : [];
+      if (body.ids && Array.isArray(body.ids) && body.ids.length > 0) {
+        args.push(`--ids=${body.ids.join(',')}`);
+      }
       const child = spawn(process.execPath, [runner, ...args], { cwd: path.dirname(runner), detached: true, stdio: ['ignore', logFd, logFd], env: { ...process.env, FLOW_DEV_DIR: DEV, FLOW_SDK_DIR: process.env.FLOW_SDK_DIR || DEV + '/api-custom-flow', FLOW_OUT_DIR: process.env.FLOW_OUT_DIR || '/home/hermes/ShopeeVideo', FLOW_PROJECT_ID: process.env.FLOW_PROJECT_ID || '760af8b7-4f35-4453-aec3-8e6ad5a2800a', CDP_PORT: process.env.CDP_PORT || '9333', FLOW_WAREHOUSE_URL: process.env.FLOW_WAREHOUSE_URL || 'http://127.0.0.1:8899' } });
       child.unref();
       return send(res, 200, JSON.stringify({ ok: true, mode, runner: 'api_v2', pid: child.pid, chrome_starting: chromeStarted }));

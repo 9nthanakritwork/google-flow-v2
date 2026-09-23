@@ -195,18 +195,26 @@ async function run() {
   const queueData = JSON.parse(fs.readFileSync(queueFile, 'utf-8'));
   const items = queueData.items || [];
 
+  const idsArg = process.argv.find(a => a.startsWith('--ids='));
+  const targetIds = idsArg
+    ? idsArg.split('=')[1].split(',').map(s => s.trim()).filter(Boolean)
+    : (ONLY_ID && !ONLY_ID.startsWith('--') ? [ONLY_ID] : null);
+
   const pendingItems = items.filter(it => {
-    if (it.status === 'done') return false;
-    if (ONLY_ID && it.id !== ONLY_ID && !it.id.includes(ONLY_ID)) return false;
-    return true;
+    // If specific target IDs were requested (e.g. "ส่งที่เลือกไปเจน"):
+    if (targetIds && targetIds.length > 0) {
+      return targetIds.includes(it.id);
+    }
+    // Otherwise, ONLY process items explicitly in 'queued' status!
+    return it.status === 'queued';
   });
 
   if (pendingItems.length === 0) {
-    console.log('✅ No queued items to process.');
+    console.log('✅ No pending items matching filter to process.');
     process.exit(0);
   }
 
-  console.log(`📋 Found ${pendingItems.length} items to process in queue.`);
+  console.log(`📋 Found ${pendingItems.length} items to process (Filter: ${targetIds ? targetIds.join(', ') : 'all queued'}).`);
 
   for (const it of pendingItems) {
     // Respect card selection: Omni 10s default
@@ -256,7 +264,17 @@ async function run() {
 
     try {
       // 1. Account & Credits Rotation
-      let account = await selectNextAccount(requiredCredits);
+      let account;
+      try {
+        account = await selectNextAccount(requiredCredits);
+      } catch (errRot) {
+        if (errRot.message && errRot.message.includes('ALL_ACCOUNTS_EXHAUSTED')) {
+          console.log(`🛑 [HALT] All Google Flow accounts have exhausted their credits. Stopping queue runner.`);
+          await reportProgress(it.id, 'queued', 'หยุดรัน: เครดิตหมดทุกบัญชีในระบบแล้ว');
+          process.exit(0);
+        }
+        throw errRot;
+      }
       let cdpPort = account.port || 9333;
       console.log(`👤 Active Account: ${account.id} (${account.email}) on CDP port ${cdpPort}`);
 
@@ -355,7 +373,16 @@ async function run() {
           if (attempt === 0 && e.message && (e.message.includes('USER_QUOTA_REACHED') || e.message.includes('QUOTA'))) {
             console.log(`⚠️ User quota reached on ${account.id}. Marking exhausted and rotating to next account...`);
             markAccountQuotaReached(account.id);
-            account = await selectNextAccount(requiredCredits);
+            try {
+              account = await selectNextAccount(requiredCredits);
+            } catch (errRot) {
+              if (errRot.message && errRot.message.includes('ALL_ACCOUNTS_EXHAUSTED')) {
+                console.log(`🛑 [HALT] All accounts exhausted after quota reached. Stopping runner.`);
+                await reportProgress(it.id, 'queued', 'หยุดรัน: เครดิตหมดทุกบัญชีในระบบแล้ว');
+                process.exit(0);
+              }
+              throw errRot;
+            }
             cdpPort = account.port || 9333;
             console.log(`📤 Re-uploading Stage A image to new account ${account.id}...`);
             const reUp = await uploadImageWire({

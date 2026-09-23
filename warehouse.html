@@ -382,10 +382,11 @@ document.getElementById('selSend').onclick=async()=>{
  if(!selected.size)return;
  if(!confirm('ส่ง '+selected.size+' สินค้าที่เลือกไปเจน? (ทำตามสูตรที่แต่ละสินค้าเลือกไว้)'))return;
  let n=0;
+ const selIds = Array.from(selected);
  products.forEach(p=>{if(selected.has(p.id)){p.status='queued';n++}});
  await persist();
  try{
-  const r=await fetch('/api/flow/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'once'})});
+  const r=await fetch('/api/flow/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'selected',ids:selIds})});
   const j=await r.json();
   if(j.ok){alert('ส่ง '+n+' สินค้า ('+selected.size+' รายการ) ไปเจนแล้วค่ะ!\nผลงานจะเด้งเข้า Discord #flow-output ทีละรายการ');selected.clear();render();}
   else alert('ส่งไม่สำเร็จ: '+JSON.stringify(j));
