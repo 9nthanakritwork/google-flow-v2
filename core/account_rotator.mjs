@@ -26,13 +26,23 @@ export function savePool(pool) {
   fs.writeFileSync(POOL_PATH, JSON.stringify(pool, null, 2), 'utf8');
 }
 
+function getThaiDayKey(offsetHours = 7) {
+  // Reset daily at 07:00 AM Thailand Time (UTC+7)
+  // If current local time is before 07:00, it still counts as previous day cycle
+  const now = new Date();
+  // shift backwards by 7 hours so cycle starts at 07:00:00
+  const cycleDate = new Date(now.getTime() - offsetHours * 60 * 60 * 1000);
+  return cycleDate.toISOString().slice(0, 10);
+}
+
 function resetDailyIfNeeded(pool) {
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const currentCycleKey = getThaiDayKey(7);
   let changed = false;
   for (const acc of pool.accounts) {
-    if (acc.last_used_date !== todayStr) {
+    if (acc.last_used_date !== currentCycleKey) {
+      console.log(`[Rotator] Resetting credits for ${acc.id} (${acc.email || ''}) for new cycle: ${currentCycleKey}`);
       acc.credits_used_today = 0;
-      acc.last_used_date = todayStr;
+      acc.last_used_date = currentCycleKey;
       changed = true;
     }
   }

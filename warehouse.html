@@ -102,6 +102,20 @@ dialog input,dialog select,dialog textarea{width:100%;padding:8px 10px;border-ra
 <div style="margin-top:8px;display:flex;gap:6px"><button class="btn btn-s btn-o" id="purgeBtn">🧹 ลบรายการค้าง/ผิดปกติ</button><button class="btn btn-s btn-o" id="refreshQueue">🔄 รีเฟรช</button></div>
 </div>
 </div>
+
+<!-- Widget แสดงสถานะ 10 บัญชี Google Flow Pool -->
+<div style="background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:14px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <b style="font-size:13px;color:var(--acc)">👥 สถานะ 10 บัญชี Google Flow (หมุนเวียนอัตโนมัติ)</b>
+      <span id="poolSummaryTag" style="font-size:11px;padding:2px 8px;border-radius:10px;background:#1e293b;color:#94a3b8">กำลังโหลด...</span>
+    </div>
+    <div style="font-size:11px;color:var(--dim)">⏰ รีเซ็ตโควตารายวัน: <b>07:00 น. (เวลาไทย)</b></div>
+  </div>
+  <div id="accountPoolGrid" style="display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));gap:8px">
+    <!-- Rendered by JS -->
+  </div>
+</div>
 <div class="toolbar">
 <input id="q" placeholder="🔍 ค้นหาชื่อสินค้า..." style="min-width:220px">
 <select id="fStatus"><option value="all">สถานะ: ทั้งหมด</option><option>queued</option><option>running</option><option>done</option><option>failed</option></select>
@@ -498,11 +512,57 @@ async function refreshMonitor(){
     if(qf){qf.innerHTML='⏳ กำลังเจน: <b>'+s.running+'</b> | 📋 รอ: <b>'+s.queued+'</b> | ✅ เสร็จ: <b>'+s.done+'</b> | ❌ พลาด: <b>'+s.failed+'</b>';}
   }catch{}
   try{
-    // เครดิต: ดึงตรงจาก warehouse-server (/api/credits)
-    if(++creditTick%3===1){
+    // เครดิต & บัญชี: ดึงตรงจาก warehouse-server (/api/credits)
+    if(++creditTick%1===0){
       const c=await (await fetch('/api/credits')).json();
       const ce=document.getElementById('stCredits');
-      if(ce)ce.textContent=c.credits??'—';
+      if(ce && c.ok){
+        ce.innerHTML = `<span title="บัญชีกำลังรัน: ${c.email || c.active_id}">${c.credits}/${c.total}</span> <span style="font-size:11px;font-weight:normal;color:var(--dim)">(รวมพร้อมใช้: ${c.totalRemaining} cr)</span>`;
+      }
+      
+      // Render Account Pool Widget
+      const aGrid = document.getElementById('accountPoolGrid');
+      const pTag = document.getElementById('poolSummaryTag');
+      if (aGrid && c.accounts) {
+        if (pTag) {
+          pTag.textContent = `พร้อมใช้ ${c.totalRemaining} / ${c.totalLimit} เครดิต`;
+          pTag.style.background = c.totalRemaining > 30 ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)';
+          pTag.style.color = c.totalRemaining > 30 ? '#4ade80' : '#f87171';
+        }
+        aGrid.innerHTML = c.accounts.map(acc => {
+          const isAct = acc.isActive;
+          const isReady = acc.status === 'ready';
+          const pct = Math.round((acc.remaining / acc.limit) * 100);
+          const barColor = acc.remaining >= 15 ? '#3b82f6' : acc.remaining > 0 ? '#f59e0b' : '#ef4444';
+          const borderStyle = isAct ? 'border:1.5px solid #38bdf8;box-shadow:0 0 10px rgba(56,189,248,0.25)' : 'border:1px solid var(--line)';
+          const statusBadge = !isReady 
+            ? '<span style="color:#64748b;font-size:10px">รอ Login</span>'
+            : isAct 
+            ? '<span style="color:#38bdf8;font-size:10px;font-weight:bold">● ใช้งานอยู่</span>' 
+            : acc.remaining >= 15
+            ? '<span style="color:#22c55e;font-size:10px">พร้อม</span>'
+            : '<span style="color:#ef4444;font-size:10px">หมด</span>';
+
+          return `
+            <div style="background:#0f172a;${borderStyle};border-radius:8px;padding:8px;font-size:11px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                <b style="color:${isAct ? '#38bdf8' : '#e2e8f0'}">${acc.id}</b>
+                ${statusBadge}
+              </div>
+              <div style="color:var(--dim);font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:6px" title="${acc.email}">
+                ${acc.email}
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:10px;margin-bottom:2px">
+                <span style="color:var(--dim)">เครดิต:</span>
+                <b style="color:${barColor}">${acc.remaining} / ${acc.limit}</b>
+              </div>
+              <div style="background:#1e293b;border-radius:4px;height:4px;overflow:hidden">
+                <div style="background:${barColor};width:${pct}%;height:100%"></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
     }
   }catch{}
 }

@@ -237,12 +237,42 @@ const server = http.createServer(async (req, res) => {
     }
     if (req.method === 'GET' && req.url === '/api/credits') {
       try {
-        const pool = JSON.parse(fs.readFileSync(path.join(DEV, 'api-custom-flow', 'account_pool.json'), 'utf8'));
+        const poolPath = path.join(DEV, 'api-custom-flow', 'account_pool.json');
+        const pool = JSON.parse(fs.readFileSync(poolPath, 'utf8'));
         const active = pool.accounts.find(a => a.id === pool.active_account_id) || pool.accounts[0];
         const rem = active.daily_credit_limit - active.credits_used_today;
-        return send(res, 200, JSON.stringify({ ok: true, active_id: active.id, email: active.email, credits: rem, total: active.daily_credit_limit }));
+        
+        let totalRemaining = 0;
+        let totalLimit = 0;
+        const accountsSummary = pool.accounts.map(a => {
+          const r = Math.max(0, a.daily_credit_limit - a.credits_used_today);
+          if (a.status === 'ready') {
+            totalRemaining += r;
+            totalLimit += a.daily_credit_limit;
+          }
+          return {
+            id: a.id,
+            email: a.email || '(รอเชื่อมต่อ)',
+            status: a.status,
+            used: a.credits_used_today,
+            limit: a.daily_credit_limit,
+            remaining: r,
+            isActive: a.id === pool.active_account_id
+          };
+        });
+
+        return send(res, 200, JSON.stringify({
+          ok: true,
+          active_id: active.id,
+          email: active.email,
+          credits: rem,
+          total: active.daily_credit_limit,
+          totalRemaining,
+          totalLimit,
+          accounts: accountsSummary
+        }));
       } catch (e) {
-        return send(res, 200, JSON.stringify({ ok: false, credits: '—' }));
+        return send(res, 200, JSON.stringify({ ok: false, credits: '—', accounts: [] }));
       }
     }
     if (req.method === 'GET' && req.url === '/api/presets') {
