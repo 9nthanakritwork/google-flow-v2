@@ -284,7 +284,19 @@ function render(){
    th.closest('.card').querySelectorAll('[data-thumbp]').forEach(t=>t.classList.toggle('sel',parseInt(t.dataset.thi)===idx));
    persist();
  });
- g.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{const p=products.find(x=>x.id===b.dataset.v);if(p&&p.output_video){const parts=p.output_video.split(/[\\/]/);const i=parts.indexOf('flow_output');const url='/output/'+(i>0?parts.slice(i+1).join('/'):parts.pop());window.open(url)}});
+ g.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{
+   const p=products.find(x=>x.id===b.dataset.v);
+   if(p&&p.output_video){
+     let rel = p.output_video;
+     const m = rel.match(/([0-9]{4}-[0-9]{2}-[0-9]{2}_batch[0-9]{4}.*)$/);
+     if(m) rel = m[1];
+     else {
+       const parts = rel.split(/[\\/]/);
+       rel = parts.slice(-3).join('/');
+     }
+     window.open('/output/' + rel);
+   }
+ });
  g.querySelectorAll('[data-q]').forEach(b=>b.onclick=async()=>{
    const p=products.find(x=>x.id===b.dataset.q);
    if(!confirm('ส่ง "'+p.name+'" ไปเจนทันที?'))return;

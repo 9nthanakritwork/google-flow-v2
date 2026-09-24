@@ -66,13 +66,28 @@ function send(res, code, body, type = 'application/json; charset=utf-8') {
 
 function safePath(urlPath) {
   const clean = decodeURIComponent(urlPath.split('?')[0]);
-  // serve flow_output files (videos/images) from ShopeeAffiliate reports via /output/
+  // serve output files (videos/images) via /output/
   if (clean.startsWith('/output/')) {
     const rel = clean.replace('/output/', '');
-    const base = (process.env.FLOW_OUT_DIR || '/home/hermes/DEV/media/output/');
-    const full = path.join(base, rel);
-    if (!path.resolve(full).startsWith(path.resolve(base))) return null;
-    return full;
+    // Check multiple possible roots
+    const candidateRoots = [
+      (process.env.FLOW_OUT_DIR || '/home/hermes/ShopeeVideo/current'),
+      '/home/hermes/ShopeeVideo/current',
+      '/home/hermes/ShopeeVideo',
+      path.join(DEV, 'media', 'output'),
+      '/home/hermes/Facebook/ไอเดียแต่งบ้าน/flow_output'
+    ];
+    for (const base of candidateRoots) {
+      const full = path.join(base, rel);
+      if (fs.existsSync(full) && fs.statSync(full).isFile()) {
+        return full;
+      }
+    }
+    // Fallback: check rel directly if it is already an absolute path
+    if (path.isAbsolute(rel) && fs.existsSync(rel) && fs.statSync(rel).isFile()) {
+      return rel;
+    }
+    return null;
   }
   const full = path.normalize(path.join(DEV, clean === '/' ? 'warehouse.html' : clean));
   if (!full.startsWith(DEV)) return null;

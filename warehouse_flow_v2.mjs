@@ -35,6 +35,7 @@ import { stageAGemini, stageAConfigured } from './gemini_stage_a.mjs';
 import { notifyDiscord } from './discord_notify.mjs';
 
 const DEV = process.env.FLOW_DEV_DIR || '/home/hermes/DEV';
+const OUT_ROOT = process.env.FLOW_OUT_DIR || '/home/hermes/ShopeeVideo/current';
 const WAREHOUSE_URL = process.env.FLOW_WAREHOUSE_URL || 'http://127.0.0.1:8899';
 const ONLY_ID = process.argv[2] || process.env.FLOW_ONLY_ID || '';
 
@@ -232,7 +233,7 @@ async function run() {
 
     const today = new Date().toISOString().slice(0, 10);
     const dateBatch = `${today}_batch${today.slice(5, 7)}${today.slice(8, 10)}`;
-    const itemDir = path.join(DEV, 'media', 'output', dateBatch, it.id);
+    const itemDir = path.join(OUT_ROOT, dateBatch, it.id);
     fs.mkdirSync(itemDir, { recursive: true });
 
     const imgOut = path.join(itemDir, `${dateStr}_${safeProductName}_${safeImagePreset}_${roundStr}_${ratioStr}.jpg`);
