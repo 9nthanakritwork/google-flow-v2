@@ -339,13 +339,13 @@ async function run() {
 
       // 4. Stage B: Upload Stage A image as Start Image
       await reportProgress(it.id, 'running', 'uploading generated image');
-      console.log(`📤 Uploading Stage A image to Google Flow (RPC maseQ)...`);
+      console.log(`📤 Uploading Stage A image as start image for Omni Flash (RPC maseQ)...`);
       const uploadRes = await uploadImageWire({
         imagePath: imgOut,
         fileName: path.basename(imgOut),
         cdpPort
       });
-      const startMediaId = uploadRes.mediaId;
+      let startMediaId = uploadRes.mediaId;
       console.log(`  ✅ Start Image uploaded: mediaId=${startMediaId}`);
 
       // 5. Stage B: Build Video Prompt & Submit Omni Flash
