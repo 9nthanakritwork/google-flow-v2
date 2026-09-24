@@ -167,16 +167,22 @@ const server = http.createServer(async (req, res) => {
         }
       }
       // กันเซฟทับความคืบหน้ากลางรัน: คงสถานะเดิม (running/done/failed+note+วิดีโอ) ของรอบ id เดิมไว้
+      // ยกเว้นสินค้าที่ถูกตั้งใจเซ็ตเป็น 'queued' จากการสั่งเจนใหม่หรือเลือกเจน
+      const queuedProductIds = new Set((state.products || []).filter(p => p.status === 'queued').map(p => p.id));
       try {
         const old = JSON.parse(fs.readFileSync(QUEUE_FILE, 'utf-8'));
         const byId = new Map((old.items || []).map(i => [i.id, i]));
         for (const it of items) {
           const prev = byId.get(it.id);
           if (prev && prev.status && prev.status !== 'queued') {
-            it.status = prev.status;
-            if (prev.output_video) it.output_video = prev.output_video;
-            if (prev.progress_note) it.progress_note = prev.progress_note;
-            if (prev.updated_at) it.updated_at = prev.updated_at;
+            if (queuedProductIds.has(it.product_id)) {
+              it.status = 'queued'; // บังคับรีเซ็ตเป็น queued ตามการสั่งซื้อ/สั่งเจนใหม่
+            } else {
+              it.status = prev.status;
+              if (prev.output_video) it.output_video = prev.output_video;
+              if (prev.progress_note) it.progress_note = prev.progress_note;
+              if (prev.updated_at) it.updated_at = prev.updated_at;
+            }
           }
         }
       } catch {}

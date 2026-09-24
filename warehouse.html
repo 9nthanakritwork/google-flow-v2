@@ -397,10 +397,25 @@ document.getElementById('selSend').onclick=async()=>{
  if(!confirm('ส่ง '+selected.size+' สินค้าที่เลือกไปเจน? (ทำตามสูตรที่แต่ละสินค้าเลือกไว้)'))return;
  let n=0;
  const selIds = Array.from(selected);
- products.forEach(p=>{if(selected.has(p.id)){p.status='queued';n++}});
+ products.forEach(p=>{
+   if(selected.has(p.id)){
+     p.status='queued';
+     p.output_video=''; // clear output so it re-generates
+     n++;
+   }
+ });
  await persist();
  try{
-  const r=await fetch('/api/flow/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'selected',ids:selIds})});
+  // ส่งไปรัน โดยขยาย selIds ให้ครอบคลุมทุกรอบ (เช่น _r1, _r2)
+  const targetQueueIds = [];
+  products.forEach(p => {
+    if (selected.has(p.id)) {
+      const rCount = roundsOf(p);
+      for (let i = 1; i <= rCount; i++) targetQueueIds.push(p.id + '_r' + i);
+      targetQueueIds.push(p.id);
+    }
+  });
+  const r=await fetch('/api/flow/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:'selected',ids:targetQueueIds})});
   const j=await r.json();
   if(j.ok){alert('ส่ง '+n+' สินค้า ('+selected.size+' รายการ) ไปเจนแล้วค่ะ!\nผลงานจะเด้งเข้า Discord #flow-output ทีละรายการ');selected.clear();render();}
   else alert('ส่งไม่สำเร็จ: '+JSON.stringify(j));
