@@ -83,8 +83,19 @@ export async function connectCDP(tab) {
 
 /**
  * Recovers Google's unhijacked reCAPTCHA execute function from closure scopes if monkey-patched.
+ * Also waits for reCAPTCHA enterprise to be ready after page load/account switch.
  */
-export async function unhijackCaptcha(cdp) {
+export async function unhijackCaptcha(cdp, maxWaitMs = 15000) {
+  const start = Date.now();
+  // 1. Wait for window.grecaptcha?.enterprise to be loaded
+  while (Date.now() - start < maxWaitMs) {
+    const readyCheck = await cdp.send('Runtime.evaluate', {
+      expression: '!!(window.grecaptcha && window.grecaptcha.enterprise && typeof window.grecaptcha.enterprise.execute === "function")'
+    });
+    if (readyCheck?.result?.value === true) break;
+    await new Promise(r => setTimeout(r, 500));
+  }
+
   const evalRes = await cdp.send('Runtime.evaluate', {
     expression: 'window.grecaptcha?.enterprise?.execute ? window.grecaptcha.enterprise.execute.toString() : null'
   });

@@ -26,17 +26,18 @@ export function savePool(pool) {
   fs.writeFileSync(POOL_PATH, JSON.stringify(pool, null, 2), 'utf8');
 }
 
-function getThaiDayKey(offsetHours = 7) {
-  // Reset daily at 07:00 AM Thailand Time (UTC+7)
-  // If current local time is before 07:00, it still counts as previous day cycle
+function getThaiDayKey() {
+  // Thai time is UTC+7. Daily cycle resets at 07:00 AM Bangkok time.
   const now = new Date();
-  // shift backwards by 7 hours so cycle starts at 07:00:00
-  const cycleDate = new Date(now.getTime() - offsetHours * 60 * 60 * 1000);
+  const thaiMillis = now.getTime() + (7 * 60 * 60 * 1000);
+  const thaiDate = new Date(thaiMillis);
+  // Subtract 7 hours so 00:00 - 06:59 counts as yesterday
+  const cycleDate = new Date(thaiDate.getTime() - (7 * 60 * 60 * 1000));
   return cycleDate.toISOString().slice(0, 10);
 }
 
 function resetDailyIfNeeded(pool) {
-  const currentCycleKey = getThaiDayKey(7);
+  const currentCycleKey = getThaiDayKey();
   let changed = false;
   for (const acc of pool.accounts) {
     if (acc.last_used_date !== currentCycleKey) {
@@ -123,6 +124,9 @@ export async function switchChromeToAccount(targetAccount) {
   if (!ready) {
     throw new Error(`Timeout waiting for Chrome on port 9333 for ${targetAccount.id}`);
   }
+
+  // 4. Wait for Flow tab and page scripts to finish loading
+  await new Promise(r => setTimeout(r, 4000));
 
   // 4. Update pool active account & port
   const pool = loadPool();
