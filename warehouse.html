@@ -502,7 +502,14 @@ async function refreshMonitor(){
     const a=await (await fetch('/api/activity')).json();
     const f=document.getElementById('actFeed');
     if(f){f.innerHTML=(a.events||[]).slice(0,15).map(e=>{
-      const t=e.ts.slice(11,19);const ic=e.status==='done'?'✅':e.status==='failed'?'❌':e.status==='running'?'⏳':'•';
+      let t = '';
+      try {
+        const d = new Date(e.ts);
+        t = d.toLocaleTimeString('th-TH', { timeZone: 'Asia/Bangkok', hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      } catch {
+        t = (e.ts || '').slice(11, 19);
+      }
+      const ic=e.status==='done'?'✅':e.status==='failed'?'❌':e.status==='running'?'⏳':'•';
       return '<div>'+ic+' '+t+' — '+esc((e.note||e.status||'').slice(0,60))+'</div>';
     }).join('')||'ยังไม่มีกิจกรรม';}
   }catch{}
